@@ -5,53 +5,61 @@ from scipy.signal import convolve2d
 
 def load_image(path: str) -> np.ndarray:
     """
-    Loads an image and returns a NumPy array.
+    Load an image from disk and return it as a NumPy array.
 
-    Important:
-    - If the image is grayscale (mode 'L' or '1'), returns shape (H, W).
-    - If the image is RGB, returns shape (H, W, 3).
+    - If the file is grayscale (like lena_edges.png), returns shape (H, W).
+    - If the file is RGB, returns shape (H, W, 3).
     """
-    img = Image.open(path)  # do NOT force RGB; keep original mode
-    return np.array(img)
+    img = Image.open(path)          # IMPORTANT: do NOT force RGB here
+    arr = np.array(img)
+
+    # Some grayscale images may come as (H, W, 1) -> convert to (H, W)
+    if arr.ndim == 3 and arr.shape[2] == 1:
+        arr = arr[:, :, 0]
+
+    return arr
 
 
 def edge_detection(image: np.ndarray) -> np.ndarray:
     """
-    Sobel edge detection.
+    Perform Sobel edge detection.
 
-    Accepts:
-    - RGB image (H, W, 3) or grayscale image (H, W)
+    Input:
+      - image: (H, W, 3) RGB or (H, W) grayscale
 
-    Returns:
-    - edge magnitude image in uint8 range [0, 255] with shape (H, W)
+    Output:
+      - edgeMAG: (H, W) uint8 in range 0..255
     """
     # Convert to grayscale float
     if image.ndim == 3:
-        gray = np.mean(image, axis=2).astype(float)
+        gray = np.mean(image, axis=2).astype(np.float64)
     else:
-        gray = image.astype(float)
+        gray = image.astype(np.float64)
 
+    # Sobel kernels
     kernelY = np.array([
         [ 1,  2,  1],
         [ 0,  0,  0],
         [-1, -2, -1]
-    ], dtype=float)
+    ], dtype=np.float64)
 
     kernelX = np.array([
         [-1,  0,  1],
         [-2,  0,  2],
         [-1,  0,  1]
-    ], dtype=float)
+    ], dtype=np.float64)
 
     edgeY = convolve2d(gray, kernelY, mode="same", boundary="fill", fillvalue=0)
     edgeX = convolve2d(gray, kernelX, mode="same", boundary="fill", fillvalue=0)
 
-    mag = np.sqrt(edgeX ** 2 + edgeY ** 2)
+    edgeMAG = np.sqrt(edgeX ** 2 + edgeY ** 2)
 
     # Normalize to 0..255 safely
-    mag_min, mag_max = mag.min(), mag.max()
-    if mag_max == mag_min:
-        return np.zeros_like(mag, dtype=np.uint8)
+    mn = float(edgeMAG.min())
+    mx = float(edgeMAG.max())
+    if mx > mn:
+        edgeMAG = (edgeMAG - mn) / (mx - mn) * 255.0
+    else:
+        edgeMAG = np.zeros_like(edgeMAG)
 
-    mag_norm = np.interp(mag, (mag_min, mag_max), (0, 255)).astype(np.uint8)
-    return mag_norm
+    return edgeMAG.astype(np.uint8)

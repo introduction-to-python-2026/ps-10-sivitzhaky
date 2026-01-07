@@ -32,35 +32,29 @@ def load_image(path: str) -> np.ndarray:
 
     return arr
 
-
-def edge_detection(image: np.ndarray) -> np.ndarray:
-    """
-    Sobel edge detection.
-    Accepts RGB (H,W,3) or grayscale (H,W).
-    Returns (H,W) uint8 0..255.
-    """
+def edge_detection(image):
+    # ודאי grayscale
     if image.ndim == 3:
-        gray = np.mean(image, axis=2).astype(np.float64)
-    else:
-        gray = image.astype(np.float64)
+        image = image.mean(axis=2)
 
-    kernelY = np.array([[ 1,  2,  1],
-                        [ 0,  0,  0],
-                        [-1, -2, -1]], dtype=np.float64)
+    image = image.astype(np.float64)
 
-    kernelX = np.array([[-1, 0, 1],
-                        [-2, 0, 2],
-                        [-1, 0, 1]], dtype=np.float64)
+    # Sobel kernels – בדיוק
+    Kx = np.array([[-1, 0, 1],
+                   [-2, 0, 2],
+                   [-1, 0, 1]])
 
-    edgeY = convolve2d(gray, kernelY, mode="same", boundary="fill", fillvalue=0)
-    edgeX = convolve2d(gray, kernelX, mode="same", boundary="fill", fillvalue=0)
+    Ky = np.array([[-1, -2, -1],
+                   [ 0,  0,  0],
+                   [ 1,  2,  1]])
 
-    edgeMAG = np.sqrt(edgeX**2 + edgeY**2)
+    gx = convolve2d(image, Kx, mode="same", boundary="symm")
+    gy = convolve2d(image, Ky, mode="same", boundary="symm")
 
-    mn, mx = float(edgeMAG.min()), float(edgeMAG.max())
-    if mx > mn:
-        edgeMAG = (edgeMAG - mn) / (mx - mn) * 255.0
-    else:
-        edgeMAG = np.zeros_like(edgeMAG)
+    # magnitude אמיתי
+    grad = np.sqrt(gx**2 + gy**2)
 
-    return edgeMAG.astype(np.uint8)
+    # נרמול ל־[0,255] — קריטי לטסט
+    grad = grad / grad.max() * 255
+
+    return grad

@@ -5,27 +5,26 @@ from skimage.morphology import ball
 
 from image_utils import load_image, edge_detection
 
-
 def main():
-    # 1) Load image (the autograder uses ./tests/lena.jpg internally,
-    # but for your repo output we generate detected_edges.png)
-    input_path = "lena.jpg"  # make sure this file exists in your repo (root)
-    img = load_image(input_path)
+    # 1. Load image
+    img = load_image("lena.jpg")
 
-    # 2) Suppress noise
-    img_clean = median(img, ball(3))
+    # 2. Convert to grayscale BEFORE median
+    if img.ndim == 3:
+        img = np.mean(img, axis=2)
 
-    # 3) Edge detection (0..255 uint8)
-    edge = edge_detection(img_clean)
+    # 3. Median filter
+    img = median(img, ball(3))
 
-    # 4) Convert to binary using threshold (as in the tests: > 50)
-    edge_binary = (edge > 50).astype(np.uint8)  # 0/1
+    # 4. Edge detection
+    edge = edge_detection(img)
 
-    # 5) Save as PNG with values 0/255
-    out = (edge_binary * 255).astype(np.uint8)
+    # 5. Threshold EXACTLY like the test
+    edge_binary = (edge > 50).astype(np.uint8)
+
+    # 6. Save result
+    out = edge_binary * 255
     Image.fromarray(out).save("detected_edges.png")
-
 
 if __name__ == "__main__":
     main()
-
